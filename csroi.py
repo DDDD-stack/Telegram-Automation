@@ -1,160 +1,109 @@
-import re
-import time
-from openpyxl import load_workbook
 from playwright.sync_api import sync_playwright
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 
-# ─── Config ───────────────────────────────────────────────────────────────────
-EXCEL_FILE     = "csroi_data.xlsx"
-GMAIL_EMAIL    = "your_gmail@gmail.com"      # <-- change this
-GMAIL_PASSWORD = "your_gmail_password"       # <-- change this
-RECEIVER_EMAIL = "receiver@gmail.com"        # <-- change this
-
-
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-def parse_roi_to_float(roi_str: str) -> float:
-    if not roi_str:
-        return -float("inf")
-    cleaned = str(roi_str).replace(",", "").strip()
-    match = re.search(r"-?[\d]+\.?\d*", cleaned)
-    if match:
-        try:
-            return float(match.group())
-        except ValueError:
-            return -float("inf")
-    return -float("inf")
+excel = "csroi.xlsx"
+tabs = [("Cases", "Case"), ("Stickers", "Sticker"), ("Armory", "Armory")]
 
 
-def load_top3_from_excel(filepath: str) -> list[dict]:
-    wb = load_workbook(filepath)
+def acceptCookies(page):
+    try:
+        page.click("button:has-text('Agree')", timeout=4000)
+        page.wait_for_timeout(800)
+    except Exception:
+        pass
+
+
+def switchTab(page, value):
+    page.click(f"button[value='{value}']")
+    page.wait_for_timeout(2500)
+
+
+def selectInvestRoi(page):
+    try:
+        page.click("div[class*='MuiSelect']:has-text('INVEST ROI'), div[class*='MuiSelect']:has-text('UNBOX ROI')", timeout=3000)
+        page.wait_for_timeout(800)
+        page.click("li[data-value='InvestROI'], li:has-text('INVEST ROI')", timeout=2000)
+        page.wait_for_timeout(1500)
+    except Exception:
+        pass
+
+
+def scrapeTop10(page):
+    page.wait_for_timeout(1000)
+    cards = page.query_selector_all("div.MuiPaper-root.MuiCard-root")[:10]
+    results = []
+    for card in cards:
+        lines = [l.strip() for l in card.inner_text().split("\n") if l.strip()]
+        name, price, roi, profit = "N/A", "N/A", "N/A", "N/A"
+        for i, line in enumerate(lines):
+            if ("€" in line or "$" in line) and price == "N/A":
+                price = line
+            if line == "Investing ROI" and i + 1 < len(lines):
+                roi = lines[i + 1]
+            if line == "Profit" and i + 1 < len(lines):
+                profit = lines[i + 1]
+        if lines:
+            name = lines[0]
+        results.append({"Name": name, "Price": price, "Investing ROI": roi, "Profit Chance": profit})
+    return results
+
+
+def writeExcel(allData):
+    wb = Workbook()
     ws = wb.active
+    ws.title = "CSROI Top 10"
+    sectionColors = {"Cases": "C00000", "Stickers": "7030A0", "Armory": "375623"}
 
-    headers = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
+    for col, (header, width) in enumerate(zip(
+        ["#", "Name", "Price", "Investing ROI (1M)", "Profit Chance"],
+        [4, 42, 12, 18, 16]
+    ), 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = Font(name="Arial", bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1F3864")
+        cell.alignment = Alignment(horizontal="center")
+        ws.column_dimensions[cell.column_letter].width = width
 
-    def col(name):
-        for i, h in enumerate(headers):
-            if h and name.lower() in str(h).lower():
-                return i + 1
-        return None
+    row = 2
+    for section, items in allData.items():
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
+        cell = ws.cell(row=row, column=1, value=f"  {section.upper()}")
+        cell.font = Font(name="Arial", bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor=sectionColors[section])
+        row += 1
+        for i, item in enumerate(items):
+            for col, val in enumerate([i+1, item["Name"], item["Price"], item["Investing ROI"], item["Profit Chance"]], 1):
+                cell = ws.cell(row=row, column=col, value=val)
+                cell.font = Font(name="Arial", size=10)
+                cell.fill = PatternFill("solid", fgColor="DCE6F1" if i % 2 == 0 else "FFFFFF")
+                cell.alignment = Alignment(horizontal="center")
+            row += 1
+        row += 1
 
-    name_col  = col("Name")
-    price_col = col("Price")
-    roi_col   = col("Investing ROI")
-
-    if not all([name_col, price_col, roi_col]):
-        raise ValueError(f"Could not find required columns. Headers found: {headers}")
-
-    items = []
-    for row in range(2, ws.max_row + 1):
-        name  = ws.cell(row=row, column=name_col).value
-        price = ws.cell(row=row, column=price_col).value
-        roi   = ws.cell(row=row, column=roi_col).value
-        if not name or str(name).strip() in ("", "Total Items"):
-            continue
-        items.append({
-            "Name":          str(name).strip(),
-            "Price":         str(price).strip() if price else "N/A",
-            "Investing ROI": str(roi).strip()   if roi   else "N/A",
-        })
-
-    top3 = sorted(items, key=lambda x: parse_roi_to_float(x["Investing ROI"]), reverse=True)[:3]
-    return top3
-
-
-def build_email_body(top3: list[dict]) -> str:
-    medals = ["🥇", "🥈", "🥉"]
-    lines = ["🏆 TOP 3 CS2 ITEMS — HIGHEST INVESTING ROI\n"]
-    for i, item in enumerate(top3):
-        lines.append(f"{medals[i]} {item['Name']}")
-        lines.append(f"   Price:         {item['Price']}")
-        lines.append(f"   Investing ROI: {item['Investing ROI']}\n")
-    lines.append("Source: csroi.com")
-    return "\n".join(lines)
+    wb.save(excel)
+    print(f"Saved to {excel}")
 
 
-def send_via_gmail_browser(top3: list[dict]):
-    subject = "🏆 Top 3 CS2 Items — Highest Investing ROI"
-    body    = build_email_body(top3)
-
+def main():
+    allData = {}
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.webkit.launch(headless=False)
         page = browser.new_page()
-
-        # ── 1. Go to Gmail ────────────────────────────────────────────────────
-        print("Opening Gmail…")
-        page.goto("https://mail.google.com")
-        page.wait_for_timeout(2000)
-
-        # ── 2. Log in ─────────────────────────────────────────────────────────
-        # Enter email
-        page.fill("input[type='email']", GMAIL_EMAIL)
-        page.click("#identifierNext")
-        page.wait_for_timeout(2000)
-
-        # Enter password
-        page.fill("input[type='password']", GMAIL_PASSWORD)
-        page.click("#passwordNext")
-        print("Logging in…")
-
-        # Wait for inbox to load
-        page.wait_for_url("**/mail/**", timeout=20000)
+        page.goto("https://csroi.com", wait_until="networkidle")
         page.wait_for_timeout(3000)
-        print("Logged in.")
+        acceptCookies(page)
 
-        # ── 3. Click Compose ──────────────────────────────────────────────────
-        print("Clicking Compose…")
-        page.click("div[gh='cm']")   # the Compose button
-        page.wait_for_timeout(2000)
-
-        # ── 4. Fill in To ─────────────────────────────────────────────────────
-        to_field = page.query_selector("input[name='to'], textarea[name='to'], [aria-label='To']")
-        if to_field:
-            to_field.click()
-            to_field.fill(RECEIVER_EMAIL)
-            page.keyboard.press("Tab")
-            page.wait_for_timeout(800)
-
-        # ── 5. Fill in Subject ────────────────────────────────────────────────
-        subj_field = page.query_selector("input[name='subjectbox'], [aria-label='Subject']")
-        if subj_field:
-            subj_field.click()
-            subj_field.fill(subject)
-            page.wait_for_timeout(500)
-
-        # ── 6. Fill in Body ───────────────────────────────────────────────────
-        body_field = page.query_selector("div[aria-label='Message Body'], div[role='textbox'][aria-multiline='true']")
-        if body_field:
-            body_field.click()
-            body_field.fill(body)
-            page.wait_for_timeout(500)
-
-        # ── 7. Send ───────────────────────────────────────────────────────────
-        print("Sending email…")
-        send_btn = page.query_selector("div[aria-label^='Send']")
-        if send_btn:
-            send_btn.click()
-            page.wait_for_timeout(3000)
-            print(" Email sent!")
-        else:
-            print("⚠  Send button not found — please send manually.")
-            time.sleep(10)  # keep window open so you can send manually
+        for label, value in tabs:
+            print(f"Scraping {label}...")
+            switchTab(page, value)
+            selectInvestRoi(page)
+            allData[label] = scrapeTop10(page)
+            print(f"  Got {len(allData[label])} items.")
 
         browser.close()
 
-
-# ─── Main ─────────────────────────────────────────────────────────────────────
-def main():
-    print(f"Reading Excel file: {EXCEL_FILE}")
-    top3 = load_top3_from_excel(EXCEL_FILE)
-
-    if not top3:
-        print("⚠  No items found in the Excel file.")
-        return
-
-    print("\n🏆 Top 3 items by Investing ROI:")
-    for i, item in enumerate(top3, 1):
-        print(f"  {i}. {item['Name']} | {item['Price']} | {item['Investing ROI']}")
-
-    send_via_gmail_browser(top3)
+    writeExcel(allData)
 
 
 if __name__ == "__main__":
