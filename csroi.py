@@ -15,8 +15,13 @@ def acceptCookies(page):
 
 
 def switchTab(page, value):
-    page.click(f"button[value='{value}']")
-    page.wait_for_timeout(2500)
+    btn = page.query_selector(f"button[value='{value}']")
+    # Only click if not already selected
+    if btn and btn.get_attribute("aria-pressed") != "true":
+        btn.click()
+        page.wait_for_timeout(2500)
+    else:
+        print(f"  Tab '{value}' already active, skipping click.")
 
 
 def selectInvestRoi(page):

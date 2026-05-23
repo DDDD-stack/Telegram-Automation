@@ -1,40 +1,61 @@
 import re
-import time
-import asyncio
-import subprocess
-import schedule
+import smtplib
+from email.mime.text import MIMEText
 from openpyxl import load_workbook
-from playwright.sync_api import sync_playwright
 
-excel = "csroi.xlsx"
-receiver = "receiver@gmail.com"
-run = "09:00"
+senderEmail = "shqipg46@gmail.com"
+appPassword = "drlb opqx dayg vovv"
+receiver    = "drobi840@gmail.com"
+excel       = "csroi.xlsx"
+
+
+def parseRoi(val):
+    match = re.search(r"-?[\d]+\.?\d*", str(val))
+    return float(match.group()) if match else -float("inf")
+
+
+def loadTop3():
+    wb = load_workbook(excel)
+    ws = wb.active
+    headers = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
+    roiCol   = next((i+1 for i, h in enumerate(headers) if h and "Investing ROI" in str(h)), None)
+    priceCol = next((i+1 for i, h in enumerate(headers) if h and "Price" in str(h)), None)
+
+    items = []
+    for row in range(2, ws.max_row + 1):
+        roi  = ws.cell(row=row, column=roiCol).value
+        info = ws.cell(row=row, column=priceCol).value
+        if not roi or not info or str(info).strip() in ("", "N/A"):
+            continue
+        # Skip section header rows
+        if not re.search(r"\d", str(roi)):
+            continue
+        items.append({"roi": parseRoi(roi), "info": str(info).strip()})
+
+    return sorted(items, key=lambda x: x["roi"], reverse=True)[:3]
+
 
 def main():
-    with sync_playwright() as p:
-        wb = load_workbook(excel)
-        ws = wb.active
+    top3 = loadTop3()
+    if not top3:
+        print("No items found.")
+        return
 
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context()
-        page = context.new_page()
+    body = "TOP 3 CS2 ITEMS BY INVESTING ROI\n\n"
+    for i, item in enumerate(top3, 1):
+        body += f"{i}. {item['info']}\n\n"
 
-        page.goto("https://accounts.google.com/")
+    print(body)
 
-        page.fill("input[aria-label='Email or phone']", "shqipg46@gmail.com", timeout=10000)
-        page.get_by_role("button", name="Next").click()
+    msg = MIMEText(body)
+    msg["Subject"] = "Top 3 CS2 Investments"
+    msg["From"]    = senderEmail
+    msg["To"]      = receiver
 
-        page.fill("input[aria-label='Enter your password']", "Denis1234robi12@#")
-        page.get_by_role("button", name="Next").click()
-
-        page.click("div[role='button']: has-text('Compose')")
-        page.fill("input[aria-label='To']", "drobi840@gmail.com")
-        page.fill("input[name='subjectbox']", "Top 3 best investments")
-        page.fill("div[role='textbox]", "This is just a test")
-
-        page.click("div[role='button']: has-text('Send')")
-
-        browser.close()
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(senderEmail, appPassword)
+        server.send_message(msg)
+        print("Email sent!")
 
 if __name__ == "__main__":
     main()
