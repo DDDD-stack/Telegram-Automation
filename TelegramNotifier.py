@@ -27,7 +27,7 @@ def loadTop3():
         info = ws.cell(row=row, column=priceCol).value
         if not roi or not info or str(info).strip() in ("", "N/A"):
             continue
-        # Skip section header rows
+
         if not re.search(r"\d", str(roi)):
             continue
         items.append({"roi": parseRoi(roi), "info": str(info).strip()})
