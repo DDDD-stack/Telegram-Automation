@@ -5,7 +5,6 @@ from openpyxl.styles import Font, PatternFill, Alignment
 excel = "csroi.xlsx"
 tabs = [("Cases", "Case"), ("Stickers", "Sticker"), ("Armory", "Armory")]
 
-
 def acceptCookies(page):
     try:
         page.click("button:has-text('Agree')", timeout=4000)
@@ -41,6 +40,8 @@ def scrapeTop10(page):
     for card in cards:
         lines = [l.strip() for l in card.inner_text().split("\n") if l.strip()]
         name, price, roi, profit = "N/A", "N/A", "N/A", "N/A"
+        link = card.query_selector("a")
+        url = "https://csroi.com" + link.get_attribute("href") if link else "N/A"
         for i, line in enumerate(lines):
             if ("€" in line or "$" in line) and price == "N/A":
                 price = line
@@ -50,7 +51,7 @@ def scrapeTop10(page):
                 profit = lines[i + 1]
         if lines:
             name = lines[0]
-        results.append({"Name": name, "Price": price, "Investing ROI": roi, "Profit Chance": profit})
+        results.append({"Name": name, "Price": price, "Investing ROI": roi, "Profit Chance": profit, "URL": url})
     return results
 
 
@@ -61,8 +62,8 @@ def writeExcel(allData):
     sectionColors = {"Cases": "C00000", "Stickers": "7030A0", "Armory": "375623"}
 
     for col, (header, width) in enumerate(zip(
-        ["#", "Name", "Price", "Investing ROI (1M)", "Profit Chance"],
-        [4, 42, 12, 18, 16]
+        ["#", "Name", "Price", "Investing ROI (1M)", "Profit Chance", "Link"],
+        [4, 42, 12, 18, 16, 40]
     ), 1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.font = Font(name="Arial", bold=True, color="FFFFFF")
@@ -78,7 +79,7 @@ def writeExcel(allData):
         cell.fill = PatternFill("solid", fgColor=sectionColors[section])
         row += 1
         for i, item in enumerate(items):
-            for col, val in enumerate([i+1, item["Name"], item["Price"], item["Investing ROI"], item["Profit Chance"]], 1):
+            for col, val in enumerate([i+1, item["Name"], item["Price"], item["Investing ROI"], item["Profit Chance"], item["URL"]], 1):
                 cell = ws.cell(row=row, column=col, value=val)
                 cell.font = Font(name="Arial", size=10)
                 cell.fill = PatternFill("solid", fgColor="DCE6F1" if i % 2 == 0 else "FFFFFF")

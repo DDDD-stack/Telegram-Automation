@@ -1,0 +1,72 @@
+=============================== 
+Mon 05/25/2026 18:06:11.60 - Starting scraper 
+=============================== 
+Scraping Cases...
+  Tab 'Case' already active, skipping click.
+  Got 8 items.
+Scraping Stickers...
+  Got 8 items.
+Scraping Armory...
+  Got 8 items.
+Saved to csroi.xlsx
+Mon 05/25/2026 18:06:37.07 - Scraper done 
+TOP 3 CS2 ITEMS BY INVESTING ROI
+
+1. Shanghai 2024 Contenders Sticker Capsule container costs $1.64. Unboxing ROI: 43.82%. Profit: 3.85%. Investing ROI: 396.7%
+
+2. Shanghai 2024 Contenders Sticker Capsule container costs $1.64. Unboxing ROI: 43.82%. Profit: 3.85%. Investing ROI: 396.7%
+
+3. Shanghai 2024 Legends Sticker Capsule container costs $1.51. Unboxing ROI: 42.1%. Profit: 3.85%. Investing ROI: 217.8%
+
+
+Email sent!
+Mon 05/25/2026 18:06:39.14 - Notifier done 
+ 
+=============================== 
+Mon 05/25/2026 18:12:01.26 - Starting scraper 
+=============================== 
+Scraping Cases...
+  Tab 'Case' already active, skipping click.
+  Got 8 items.
+Scraping Stickers...
+  Got 8 items.
+Scraping Armory...
+  Got 8 items.
+Saved to csroi.xlsx
+Mon 05/25/2026 18:12:34.28 - Scraper done 
+TOP 3 CS2 ITEMS BY INVESTING ROI
+
+1. Shanghai 2024 Contenders Sticker Capsule container costs $1.64. Unboxing ROI: 43.82%. Profit: 3.85%. Investing ROI: 396.7%
+
+2. Shanghai 2024 Contenders Sticker Capsule container costs $1.64. Unboxing ROI: 43.82%. Profit: 3.85%. Investing ROI: 396.7%
+
+3. Shanghai 2024 Legends Sticker Capsule container costs $1.51. Unboxing ROI: 42.1%. Profit: 3.85%. Investing ROI: 217.8%
+
+
+Email sent!
+Mon 05/25/2026 18:12:37.17 - Notifier done 
+ 
+=============================== 
+Mon 05/25/2026 18:17:01.30 - Starting scraper 
+=============================== 
+Scraping Cases...
+  Tab 'Case' already active, skipping click.
+  Got 8 items.
+Scraping Stickers...
+  Got 8 items.
+Scraping Armory...
+  Got 8 items.
+Saved to csroi.xlsx
+Mon 05/25/2026 18:17:26.71 - Scraper done 
+TOP 3 CS2 ITEMS BY INVESTING ROI
+
+1. Shanghai 2024 Contenders Sticker Capsule container costs $1.64. Unboxing ROI: 43.82%. Profit: 3.85%. Investing ROI: 396.7%
+
+2. Shanghai 2024 Contenders Sticker Capsule container costs $1.64. Unboxing ROI: 43.82%. Profit: 3.85%. Investing ROI: 396.7%
+
+3. Shanghai 2024 Legends Sticker Capsule container costs $1.51. Unboxing ROI: 42.1%. Profit: 3.85%. Investing ROI: 217.8%
+
+
+Email sent!
+Mon 05/25/2026 18:17:29.44 - Notifier done 
+ 
